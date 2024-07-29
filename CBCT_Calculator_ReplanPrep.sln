@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31702.278
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CBCT_Calculator_ReplanPrep", "CBCT_Calculator_ReplanPrep.csproj", "{DABB6A49-A398-4CF3-B7CD-1CE84E1E8B6F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{DABB6A49-A398-4CF3-B7CD-1CE84E1E8B6F}.Debug|x64.ActiveCfg = Debug|x64
+		{DABB6A49-A398-4CF3-B7CD-1CE84E1E8B6F}.Debug|x64.Build.0 = Debug|x64
+		{DABB6A49-A398-4CF3-B7CD-1CE84E1E8B6F}.Release|x64.ActiveCfg = Release|x64
+		{DABB6A49-A398-4CF3-B7CD-1CE84E1E8B6F}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {99DCCDB5-1609-460A-A505-6B50803E9B06}
+	EndGlobalSection
+EndGlobal
