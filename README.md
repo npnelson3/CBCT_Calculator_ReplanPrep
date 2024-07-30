@@ -11,6 +11,6 @@ a, b, and c are incremented if the CBCT images are acquired in the same session.
 ## Current limitations
 This script was developed using Eclipse 16.1, and therefore, the use of bolus is not currently supported. The code will simply warn the user that a bolus was
 found and not copy it over. The use of bolus within ESAPI is supported in Eclipse 18.
-##Screenshots
+## Screenshots
 ![Image1 of UI](https://github.com/user-attachments/assets/dd8a3efc-ff69-44d1-bf0a-fe95db3a538c)
 ![Image2 of UI](https://github.com/user-attachments/assets/b7e3d81e-1f1e-4138-aeb5-2d34ccab44ad)
