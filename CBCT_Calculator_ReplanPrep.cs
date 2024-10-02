@@ -13,7 +13,7 @@ using Image = VMS.TPS.Common.Model.API.Image;
 using System.Windows.Media.Media3D;
 
 // TODO: Replace the following version attributes by creating AssemblyInfo.cs. You can do this in the properties of the Visual Studio project.
-[assembly: AssemblyVersion("1.0.0.1")]
+[assembly: AssemblyVersion("1.0.*")]
 [assembly: AssemblyFileVersion("1.0.0.1")]
 [assembly: AssemblyInformationalVersion("1.0")]
 
@@ -54,6 +54,7 @@ namespace VMS.TPS
         private ExternalPlanSetup _planExternalSetup;
         private List<KeyValuePair<string, MetersetValue>> presetValues;
         private Structure CBCTstructure;
+        private SearchBodyParameters _highDensityParameters;
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         public void Execute(ScriptContext context, System.Windows.Window window/*, ScriptEnvironment environment*/)
@@ -79,7 +80,7 @@ namespace VMS.TPS
                 _patient.BeginModifications(); // begin modifying patient data
                 _ImageList = new List<VMS.TPS.Common.Model.API.Image>(); // generate a list of images
                 foreach (var study in _studies)
-                {
+                {   
                     foreach (var series in study.Series)
                     {
                         foreach (var image in series.Images)
@@ -292,7 +293,7 @@ namespace VMS.TPS
                 window.FontSize = 14;
                 window.Width = spMain.Width + 50;
                 //window.Height = spMain.Height + 20;
-                window.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+                window.WindowStartupLocation = WindowStartupLocation.Manual;
                 window.Content = spMain;
                 #endregion End of final UI presentation
 
@@ -412,7 +413,7 @@ namespace VMS.TPS
             // set the selected CBCT image series to Vault3 device
             if (string.IsNullOrEmpty(_cbctForCalculation.Series.ImagingDeviceId))
             {
-                _cbctForCalculation.Series.SetImagingDevice("VAULT3");
+                _cbctForCalculation.Series.SetImagingDevice("VAULT3 CT");
             }
 
             // registration work
@@ -498,7 +499,7 @@ namespace VMS.TPS
             // set the selected CBCT image series to Vault3 device
             if (string.IsNullOrEmpty(_cbctForCalculation.Series.ImagingDeviceId))
             {
-                _cbctForCalculation.Series.SetImagingDevice("VAULT3");
+                _cbctForCalculation.Series.SetImagingDevice("VAULT3 CT");
             }
 
             // registration work
@@ -539,7 +540,20 @@ namespace VMS.TPS
             string fxNo;
             Image _newCBCT_image;
             GenerateNewImageAndCBCTStructureSet(trimmedString, _cbctForCalculation, out newCBCT_structureSet, out fxNo, out _newCBCT_image);
+            // segement high density, IN PROGRESS
+//            _highDensityParameters.LowerHUThreshold = 3069; // HU for which eclipse will throw an error
+ //           Structure HighDensity = newCBCT_structureSet.CreateAndSearchBody(_highDensityParameters);
+ //           if (HighDensity.Volume > 0)
+//            {
+//                HighDensity.Id = "HD_CBCT";
+//                HighDensity.SetAssignedHU(3069);
+//                MessageBox.Show("This image has high density materials in it, I have contoured it and set it to 3069 for dose calculation." +
+//                    "Please assess accuracy and make changes if needed.");
+//            }
 
+
+            //Structure HighDensity = newCBCT_structureSet.AddStructure("CONTROL", "HD_CBCT");
+            //HighDensity.DicomType = 
             // contour the body on the new CBCT SS
             Structure body = newCBCT_structureSet.Structures.FirstOrDefault(s => s.DicomType == "EXTERNAL");
             if (body == null)
@@ -708,7 +722,7 @@ namespace VMS.TPS
             // this new image won't be associated with VAULT3, so lets do that
             if (string.IsNullOrEmpty(_newCBCT_image.Series.ImagingDeviceId))
             {
-                _newCBCT_image.Series.SetImagingDevice("VAULT3");
+                _newCBCT_image.Series.SetImagingDevice("VAULT3 CT");
                 //MessageBox.Show(string.Format("Set {0} imaging device to {1}!", _newCBCT_image.Id, _newCBCT_image.Series.ImagingDeviceId));
             }
         }
@@ -835,6 +849,7 @@ namespace VMS.TPS
             {
                 editableParams.ControlPoints.ElementAt(i).LeafPositions = originalBeam.ControlPoints.ElementAt(i).LeafPositions;
             }
+            editableParams.WeightFactor = originalBeam.WeightFactor; // apply weigthing from old beam
             //MessageBox.Show("Made it to just before 'beam.ApplyParameters(editableParams)'");
             beam.Id = originalBeam.Id;
             beam.ApplyParameters(editableParams);
