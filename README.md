@@ -7,6 +7,7 @@ The code will copy over the structures from the planning image to the CBCT using
 do not fall on the CBCT domain, they will not be copied.
 ### Field weighting and MUs
 If the calculation is request, the field weighting and normalization value (and thus, the field MUs) will be carried over from the original plan.
+If just replacing is request, the field weights are carried over but normalization is not set.
 ### High density overrides
 The script will utilize the CreateAndSearchBody method to segment the high density structures. In its current form, the scipt will segment anything with an HU greater than 3069 and set that
 volume to have an HU of 3069.
