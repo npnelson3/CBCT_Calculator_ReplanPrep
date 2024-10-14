@@ -418,7 +418,8 @@ namespace VMS.TPS
             }
 
             // registration work
-            _cbctRegistration = _patient.Registrations.FirstOrDefault(r => r.RegisteredFOR == _simImage.FOR && r.SourceFOR == _cbctForCalculation.FOR);
+            //_cbctRegistration = _patient.Registrations.FirstOrDefault(r => r.RegisteredFOR == _simImage.FOR && r.SourceFOR == _cbctForCalculation.FOR);
+            _cbctRegistration = _patient.Registrations.OrderBy(x => x.CreationDateTime).FirstOrDefault(r => r.RegisteredFOR == _simImage.FOR && r.SourceFOR == _cbctForCalculation.FOR); // this method will pick the latest registration
 
             MessageBox.Show(string.Format("I found the following corresponding registrion information\n\n\n" +
                 "Source image Id:\t{0} ({1})\n\n" +
@@ -509,7 +510,8 @@ namespace VMS.TPS
             }
 
             // registration work
-            _cbctRegistration = _patient.Registrations.FirstOrDefault(r => r.RegisteredFOR == _simImage.FOR && r.SourceFOR == _cbctForCalculation.FOR);
+            //_cbctRegistration = _patient.Registrations.FirstOrDefault(r => r.RegisteredFOR == _simImage.FOR && r.SourceFOR == _cbctForCalculation.FOR);
+            _cbctRegistration = _patient.Registrations.OrderBy(x => x.CreationDateTime).FirstOrDefault(r => r.RegisteredFOR == _simImage.FOR && r.SourceFOR == _cbctForCalculation.FOR); // this method will pick the latest registration
 
             MessageBox.Show(string.Format("I found the following corresponding registrion information\n\n\n" +
                 "Source image Id:\t{0} ({1})\n\n" +
@@ -580,22 +582,22 @@ namespace VMS.TPS
                 CBCT_plan.SetTargetStructureIfNoDose(TargetOnCBCT, myString);
             }
 
-            MessageBox.Show(string.Format("Carried over the following settings from the original plan\n\n" +
-             "Dose/fx: {0}\n" +
-             "Number of fx: {1}\n" +
-             "Total dose: {2}\n", _plan.DosePerFraction, (int)_plan.NumberOfFractions, _plan.DosePerFraction * (int)_plan.NumberOfFractions),
-            "Plan normalization value (%): " + _plan.PlanNormalizationValue.ToString() + "%\n\n\n" +
-            "Copied parameters for all treatment fields.\n" +
-            "Click 'ok' to proceed to dose calculation (may take a few minutes)");
-
-
             //MessageBox.Show(string.Format("Carried over the following settings from the original plan\n\n" +
-            //    "Dose/fx: {0}\n" +
-            //    "Number of fx: {1}\n" +
-            //    "Total dose: {2}\n" +
-            //    "Plan normalization value (%): {3}%\n\n\n" +
-            //    "Copied parameters for all treatment fields.\n" +
-            //    "Click 'ok' to proceed to dose calculation (may take a few minutes)", _plan.DosePerFraction, (int)_plan.NumberOfFractions, _plan.DosePerFraction * (int)_plan.NumberOfFractions), _plan.PlanNormalizationValue.ToString());
+            // "Dose/fx: {0}\n" +
+            // "Number of fx: {1}\n" +
+            // "Total dose: {2}\n", _plan.DosePerFraction, (int)_plan.NumberOfFractions, _plan.DosePerFraction * (int)_plan.NumberOfFractions),
+            //"Plan normalization value (%): " + _plan.PlanNormalizationValue.ToString() + "%\n\n\n" +
+            //"Copied parameters for all treatment fields.\n" +
+            //"Click 'ok' to proceed to dose calculation (may take a few minutes)");
+
+
+            MessageBox.Show(string.Format("Carried over the following settings from the original plan\n\n" +
+                "Dose/fx: {0}\n" +
+                "Number of fx: {1}\n" +
+                "Total dose: {2}\n" +
+                "Plan normalization value (%): " + _plan.PlanNormalizationValue.ToString() + "%\n\n\n" +
+                "Copied parameters for all treatment fields.\n" +
+                "Click 'ok' to proceed to dose calculation (may take a few minutes)", _plan.DosePerFraction, (int)_plan.NumberOfFractions, _plan.DosePerFraction * (int)_plan.NumberOfFractions));
 
             var res = CBCT_plan.CalculateDoseWithPresetValues(presetValues);
 
