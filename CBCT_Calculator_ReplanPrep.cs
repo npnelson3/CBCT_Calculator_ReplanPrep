@@ -595,7 +595,7 @@ namespace VMS.TPS
                 "Dose/fx: {0}\n" +
                 "Number of fx: {1}\n" +
                 "Total dose: {2}\n" +
-                "Plan normalization value (%): " + _plan.PlanNormalizationValue.ToString() + "%\n\n\n" +
+                "Plan normalization value: " + _plan.PlanNormalizationValue.ToString() + "%\n\n\n" +
                 "Copied parameters for all treatment fields.\n" +
                 "Click 'ok' to proceed to dose calculation (may take a few minutes)", _plan.DosePerFraction, (int)_plan.NumberOfFractions, _plan.DosePerFraction * (int)_plan.NumberOfFractions));
 
