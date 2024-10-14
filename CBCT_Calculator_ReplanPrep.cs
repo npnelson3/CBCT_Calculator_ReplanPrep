@@ -290,6 +290,7 @@ namespace VMS.TPS
 
 
                 // window settings
+                window.Title = "CBCT calculator and replan prepper";
                 window.FontFamily = new System.Windows.Media.FontFamily("Calibri");
                 window.FontSize = 14;
                 window.Width = spMain.Width + 50;
