@@ -100,7 +100,7 @@ namespace VMS.TPS
                 var _SortedImageListWithDates = new List<string>();
                 foreach (var image in _SortedImageList)
                 {
-                    _SortedImageListWithDates.Add(string.Format("{0} ({1})", image.Id, image.CreationDateTime.ToString()));
+                    _SortedImageListWithDates.Add(string.Format("{0} ({1} slices, {2})", image.Id, image.ZSize, image.CreationDateTime.ToString()));
                 }
 
                 // if a patient has a replan within the same course, the replan CBCT's will start as kVCBCT_01a01 just like the original plan
