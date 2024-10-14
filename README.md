@@ -9,7 +9,7 @@ do not fall on the CBCT domain, they will not be copied.
 If the calculation is request, the field weighting and normalization value (and thus, the field MUs) will be carried over from the original plan.
 If just replacing is request, the field weights are carried over but normalization is not set.
 ### High density overrides
-The script will utilize the CreateAndSearchBody method to segment the high density structures. In its current form, the scipt will segment anything with an HU greater than 3069 and set that
+The script will utilize the CreateAndSearchBody method to segment the high density structures. In its current form, the scipt will segment anything with an HU greater than 3069 and sets that
 volume to have an HU of 3069.
 ### Couch insertion
 The script will replace the couch from the original structure set with the Halcyon couch and insert it.
