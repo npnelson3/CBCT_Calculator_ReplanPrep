@@ -21,7 +21,7 @@ This script was developed using Eclipse 16.1, and therefore, the use of bolus is
 found and not copy it over. The use of bolus within ESAPI is supported in Eclipse 18. 
 
 For many treatment sites, the longitudinal FOV may be limited to allow for full scatter conditions in the scan (e.g., primary beam entering regions where no CT data exits in sup/inf directions). 
-To help combat this, the number of slices is listed in the drop down to help identify extended CBCT scans. Dosimetric integrity in general is maintained at the center of the FOV but degrades (~1-3% near the CBCT edges).
+To help combat this, the number of slices is listed in the drop down to help identify extended CBCT scans. Dosimetric integrity in general is maintained at the center of the FOV but degrades (~1-3% lower dose from CBCT) near the CBCT edges.
 ## Future work
 -Add a second drop down bar that highlights CBCT's that have an extended FOV in the longitudinal/slice direction (in addition to duplicate list)
 -Utilize the CalculateDose() method instead of CalculateDoseWithPresetValues() to allow for leverage of the distributed calculation network.
