@@ -444,11 +444,8 @@ namespace VMS.TPS
             StructureSet newCBCT_structureSet; // CBCT structure set that gets generated from GenerateNewImageAndCBCTStructureSet
             string fxNo;
             Image _newCBCT_image;
-            // segment high density volume
-            //highDensityParameters.LoadDefaults();
-            //highDensityParameters.LowerHUThreshold = 3069;
+            // generate new CBCT image and contour high density (if needed)
             GenerateNewImageAndCBCTStructureSetAndContourBodyAndHighDensity(trimmedString, _cbctForCalculation, out newCBCT_structureSet, out fxNo, out _newCBCT_image, highDensityParameters);
-
 
             // get simulation image structure set
             StructureSet sim_structureSet = _patient.StructureSets.First(x => x.Id == _plan.StructureSet.Id);
@@ -458,6 +455,7 @@ namespace VMS.TPS
 
             CopyStructuresToCBCTImage(_simImage, newCBCT_structureSet, _newCBCT_image, sim_structureSet, IsoShift);
 
+            //// WORKING 10-15-2024 (verification plan-based)
             // add new plan
             var CBCT_plan = _course.AddExternalPlanSetupAsVerificationPlan(newCBCT_structureSet, _planExternalSetup);
             CBCT_plan.Id = string.Format("kVCBCT_fx{0}", fxNo);
@@ -477,6 +475,22 @@ namespace VMS.TPS
                 StringBuilder myString = new StringBuilder(string.Format("Cannot set target structure to {0}!", TargetOnCBCT.Id));
                 CBCT_plan.SetTargetStructureIfNoDose(TargetOnCBCT, myString);
             }
+
+            // new plan method for Halcyon plans -- DIDNT WORK 10-15-2024
+            //Structure TargetOnCBCT = CBCT_structureSet.Structures.FirstOrDefault(x => x.Id == _plan.TargetVolumeID);
+            //var CBCT_plan = _course.AddExternalPlanSetup(newCBCT_structureSet, TargetOnCBCT, _plan.PrimaryReferencePoint);
+
+            //CopyBeamParameters(_patient, _plan, _cbctRegistration, _cbctForCalculation, _simImage, CBCT_plan);
+
+            //CBCT_plan.SetPrescription((int)_planExternalSetup.NumberOfFractions, _planExternalSetup.DosePerFraction, _planExternalSetup.TreatmentPercentage);
+            //if (TargetOnCBCT != null)
+            //{
+            //    StringBuilder myString = new StringBuilder(string.Format("Cannot set target structure to {0}!", TargetOnCBCT.Id));
+            //    CBCT_plan.SetTargetStructureIfNoDose(TargetOnCBCT, myString);
+            //}
+
+
+
 
             MessageBox.Show(string.Format("Set the following prescription\n\n" +
                 "Dose/fx: {0}\n" +
@@ -621,10 +635,16 @@ namespace VMS.TPS
         {
             foreach (Beam field in _plan.Beams)
             {
-                if (!field.IsSetupField) // skip set up fields
+                if (field.IsSetupField) // setup field CBCT
+                {
+                    var ImagingParameters = new ImagingBeamSetupParameters(ImagingSetup.kVCBCT, 0, 0, 0, 0, 280, 280); // 28 cm x 28 cm
+                    var MachineParametersForImaging = new ExternalBeamMachineParameters(field.TreatmentUnit.Id);
+                    CBCT_plan.AddImagingSetup(MachineParametersForImaging, ImagingParameters, CBCT_plan.StructureSet.Structures.FirstOrDefault(x => x.Id == CBCT_plan.TargetVolumeID));
+
+                }
+                else // copy beam data to presetValues
                 {
                     var presetValues = CopyBeam(field, CBCT_plan, field.IsocenterPosition, _cbctRegistration, _cbctForCalculation, _patient, _simImage);
-
                 }
             }
         }
