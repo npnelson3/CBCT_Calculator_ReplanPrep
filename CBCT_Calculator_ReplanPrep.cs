@@ -768,23 +768,28 @@ namespace VMS.TPS
                 body = newCBCT_structureSet.CreateAndSearchBody(newCBCT_structureSet.GetDefaultSearchBodyParameters());
             }
 
-            Structure BodyTemp = body; // store segment volume in temporary structure
+            Structure BodyTemp = body; // store segment volume in temporary structure BodyTemp
 
             highDensityParameters = newCBCT_structureSet.GetDefaultSearchBodyParameters();
             highDensityParameters.LowerHUThreshold = 3069;
 
             body = newCBCT_structureSet.CreateAndSearchBody(highDensityParameters);
             //body = newCBCT_structureSet.CreateAndSearchBody(_highDensityParameters);
-            if (body.Volume > 0)
+            if (body.Volume > 0) // if there is high density
             {
                 Structure HighDensity = newCBCT_structureSet.AddStructure("CONTROL", "CBCT_HD");
                 HighDensity.SegmentVolume = body.SegmentVolume; // set to HD segment volume, under disguise as body
+                body.SegmentVolume = BodyTemp.SegmentVolume; // set body back to old segment volume
                 HighDensity.SetAssignedHU(3069);
                 MessageBox.Show("This image has high density materials in it, I have contoured it and set it to 3069 to allow for dose calculation. " +
                     "Please assess accuracy of override and make changes and recalculate if needed.");
             }
+            else
+            {
+                body.SegmentVolume = BodyTemp.SegmentVolume; // set body back to old segment volume
+            }
 
-            body.SegmentVolume = BodyTemp.SegmentVolume; // set body back to old segment volume
+
             newCBCT_structureSet.RemoveStructure(BodyTemp); // remove BodyTemp from SS
         }
 
