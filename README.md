@@ -3,8 +3,9 @@ Developed by Nicholas Nelson, University of Utah Huntsman Cancer Institute
 ## Description of code
 This code utilizes the Eclipse scripting API (ESAPI) to perform dose calculations and preparations for replanning on CBCT images. In its current form,
 online image registrations between the CBCT and planning image (CT simulation) will be utilized for isocenter placement and structure set transfers. 
-The code will copy over the structures from the planning image to the CBCT using the rigid online registration slice-by-slice. If certain structures
-do not fall on the CBCT domain, they will not be copied.
+### Structure set transfer
+The code will copy over the structures from the planning image to the CBCT using the rigid online registration. For each contour, it will go slice-by-slice and map the 2D contour map from the planning image to the CBCT image. If certain structures
+do not fall on the CBCT domain (typically in the sup/inf direction), they will not be copied. If parts of the structure fall within the CBCT domain, a portion of that contour will be mapped over.
 ### Field weighting and MUs
 If the calculation is request, the field weighting and normalization value (and thus, the field MUs) will be carried over from the original plan.
 If just replacing is request, the field weights are carried over but normalization is not set.
