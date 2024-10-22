@@ -614,7 +614,8 @@ namespace VMS.TPS
                 "Copied parameters for all treatment fields.\n" +
                 "Click 'ok' to proceed to dose calculation (may take a few minutes)", _plan.DosePerFraction, (int)_plan.NumberOfFractions, _plan.DosePerFraction * (int)_plan.NumberOfFractions));
 
-            var res = CBCT_plan.CalculateDoseWithPresetValues(presetValues);
+            //var res = CBCT_plan.CalculateDoseWithPresetValues(presetValues);
+            var res = CBCT_plan.CalculateDose();
 
             if (!res.Success)
             {
