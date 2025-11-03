@@ -54,7 +54,7 @@ namespace VMS.TPS
         private ExternalPlanSetup _planExternalSetup;
         private List<KeyValuePair<string, MetersetValue>> presetValues;
         private Structure CBCTstructure;
-        public static SearchBodyParameters highDensityParameters;
+        //public static SearchBodyParameters highDensityParameters;
         //private Structure HighDensity;
 
         [MethodImpl(MethodImplOptions.NoInlining)]
@@ -427,11 +427,11 @@ namespace VMS.TPS
                 "Registered image Id:\t{2} ({3})\n\n" +
                 "Registation Id:\t{4} ({5})\n\n", _simImage.Id, _simImage.CreationDateTime, _cbctForCalculation.Id, _cbctForCalculation.CreationDateTime, _cbctRegistration.Id, _cbctRegistration.CreationDateTime));
 
-            PrepForReplan(_patient, _course, _plan, trimmedString, _cbctRegistration, _cbctForCalculation, _simImage, _planExternalSetup, highDensityParameters);
+            PrepForReplan(_patient, _course, _plan, trimmedString, _cbctRegistration, _cbctForCalculation, _simImage, _planExternalSetup);
         }
 
         public bool PrepForReplan(Patient _patient, Course _course, PlanSetup _plan, string trimmedString,
-            Registration _cbctRegistration, Image _cbctForCalculation, Image _simImage, ExternalPlanSetup _planExternalSetup, SearchBodyParameters highDensityParameters)
+            Registration _cbctRegistration, Image _cbctForCalculation, Image _simImage, ExternalPlanSetup _planExternalSetup)
         {
             // search for a corresponding structure set for the CBCT image
             StructureSet CBCT_structureSet = _patient.StructureSets.FirstOrDefault(x => x.Id == trimmedString);
@@ -445,7 +445,7 @@ namespace VMS.TPS
             string fxNo;
             Image _newCBCT_image;
             // generate new CBCT image and contour high density (if needed)
-            GenerateNewImageAndCBCTStructureSetAndContourBodyAndHighDensity(trimmedString, _cbctForCalculation, out newCBCT_structureSet, out fxNo, out _newCBCT_image, highDensityParameters);
+            GenerateNewImageAndCBCTStructureSetAndContourBodyAndHighDensity(trimmedString, _cbctForCalculation, out newCBCT_structureSet, out fxNo, out _newCBCT_image);
 
             // get simulation image structure set
             StructureSet sim_structureSet = _patient.StructureSets.First(x => x.Id == _plan.StructureSet.Id);
@@ -533,7 +533,7 @@ namespace VMS.TPS
                 "Registered image Id:\t{2} ({3})\n\n" +
                 "Registation Id:\t{4} ({5})\n\n", _simImage.Id, _simImage.CreationDateTime, _cbctForCalculation.Id, _cbctForCalculation.CreationDateTime, _cbctRegistration.Id, _cbctRegistration.CreationDateTime));
 
-            Calculate(_patient, _course, _plan, trimmedString, _cbctRegistration, _cbctForCalculation, _simImage, _planExternalSetup, highDensityParameters);
+            Calculate(_patient, _course, _plan, trimmedString, _cbctRegistration, _cbctForCalculation, _simImage, _planExternalSetup);
         }
 
         /// <summary>
@@ -550,7 +550,7 @@ namespace VMS.TPS
         /// <param name="_planExternalSetup"></param>
         /// <returns></returns>
         public bool Calculate(Patient _patient, Course _course, PlanSetup _plan, string trimmedString, Registration _cbctRegistration,
-            Image _cbctForCalculation, Image _simImage, ExternalPlanSetup _planExternalSetup, SearchBodyParameters highDensityParameters)
+            Image _cbctForCalculation, Image _simImage, ExternalPlanSetup _planExternalSetup)
         {
             // search for a corresponding structure set for the CBCT image
             StructureSet CBCT_structureSet = _patient.StructureSets.FirstOrDefault(x => x.Id == trimmedString);
@@ -566,7 +566,7 @@ namespace VMS.TPS
             // segment high density volume
             //highDensityParameters.LoadDefaults();
             //highDensityParameters.LowerHUThreshold = 3069;
-            GenerateNewImageAndCBCTStructureSetAndContourBodyAndHighDensity(trimmedString, _cbctForCalculation, out newCBCT_structureSet, out fxNo, out _newCBCT_image, highDensityParameters);
+            GenerateNewImageAndCBCTStructureSetAndContourBodyAndHighDensity(trimmedString, _cbctForCalculation, out newCBCT_structureSet, out fxNo, out _newCBCT_image);
 
 
             // get simulation image structure set
@@ -670,6 +670,10 @@ namespace VMS.TPS
                     {
                         MessageBox.Show("It looks like there is a bolus in this plan, I cannot copy those over in Eclipse 16.1, should be available in Eclipse 18.");
                     }
+                    else if (structure.DicomType == "EXTERNAL")
+                    {
+                        //skip copying over previous external
+                    }
                     else if (structure.DicomType == "SUPPORT")
                     {
                         if (!couchwarn)
@@ -743,7 +747,7 @@ namespace VMS.TPS
         /// <param name="fxNo"></param>
         /// <param name="_newCBCT_image"></param>
         private static void GenerateNewImageAndCBCTStructureSetAndContourBodyAndHighDensity(string trimmedString, Image _cbctForCalculation, 
-            out StructureSet newCBCT_structureSet, out string fxNo, out Image _newCBCT_image, SearchBodyParameters highDensityParameters)
+            out StructureSet newCBCT_structureSet, out string fxNo, out Image _newCBCT_image)
         {
             newCBCT_structureSet = _cbctForCalculation.CreateNewStructureSet();
             string newCBCT_Id = trimmedString.Substring(7, 2); // grabbing 2 values in string, starting from 8. kVCBCT_01a01 should yield 01, nobody has over 100 fx's.
@@ -766,32 +770,35 @@ namespace VMS.TPS
             Structure body = newCBCT_structureSet.Structures.FirstOrDefault(s => s.DicomType == "EXTERNAL");
             if (body == null)
             {
-                body = newCBCT_structureSet.CreateAndSearchBody(newCBCT_structureSet.GetDefaultSearchBodyParameters());
+                SearchBodyParameters defaultSearchParameters = newCBCT_structureSet.GetDefaultSearchBodyParameters();
+                body = newCBCT_structureSet.CreateAndSearchBody(defaultSearchParameters);
+                MessageBox.Show(string.Format("Searching for body using default parameters, LowerHUThreshold = {0}.", defaultSearchParameters.LowerHUThreshold));
             }
 
-            Structure BodyTemp = body; // store segment volume in temporary structure BodyTemp
+            //Structure BodyTemp = body; // store body structure in temporary structure BodyTemp
 
-            highDensityParameters = newCBCT_structureSet.GetDefaultSearchBodyParameters();
-            highDensityParameters.LowerHUThreshold = 3069;
+            //SearchBodyParameters highDensityParameters = newCBCT_structureSet.GetDefaultSearchBodyParameters();
+            //highDensityParameters.LowerHUThreshold = 3069;
+            //MessageBox.Show(string.Format("Searching for high density using body function where LowerHUThreshold = {0}.", highDensityParameters.LowerHUThreshold));
 
-            body = newCBCT_structureSet.CreateAndSearchBody(highDensityParameters);
-            //body = newCBCT_structureSet.CreateAndSearchBody(_highDensityParameters);
-            if (body.Volume > 0) // if there is high density
-            {
-                Structure HighDensity = newCBCT_structureSet.AddStructure("CONTROL", "CBCT_HD");
-                HighDensity.SegmentVolume = body.SegmentVolume; // set to HD segment volume, under disguise as body
-                body.SegmentVolume = BodyTemp.SegmentVolume; // set body back to old segment volume
-                HighDensity.SetAssignedHU(3069);
-                MessageBox.Show("This image has high density materials in it, I have contoured it and set it to 3069 to allow for dose calculation. " +
-                    "Please assess accuracy of override and make changes and recalculate if needed.");
-            }
-            else
-            {
-                body.SegmentVolume = BodyTemp.SegmentVolume; // set body back to old segment volume
-            }
+            //body = newCBCT_structureSet.CreateAndSearchBody(highDensityParameters);
+            ////body = newCBCT_structureSet.CreateAndSearchBody(_highDensityParameters);
+            //if (body.Volume > 0) // if there is high density
+            //{
+            //    Structure HighDensity = newCBCT_structureSet.AddStructure("CONTROL", "CBCT_HD");
+            //    HighDensity.SegmentVolume = body.SegmentVolume; // set to HD segment volume, under disguise as body
+            //    body.SegmentVolume = BodyTemp.SegmentVolume; // set body back to old segment volume
+            //    HighDensity.SetAssignedHU(3069);
+            //    MessageBox.Show("This image has high density materials in it, I have contoured it and set it to 3069 to allow for dose calculation. " +
+            //        "Please assess accuracy of override and make changes and recalculate if needed.");
+            //}
+            //else
+            //{
+            //    body.SegmentVolume = BodyTemp.SegmentVolume; // set body back to old segment volume
+            //}
 
 
-            newCBCT_structureSet.RemoveStructure(BodyTemp); // remove BodyTemp from SS
+            //newCBCT_structureSet.RemoveStructure(BodyTemp); // remove BodyTemp from SS
         }
 
         /// <summary>
