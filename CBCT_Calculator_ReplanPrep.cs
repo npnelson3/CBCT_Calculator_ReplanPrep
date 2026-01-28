@@ -7,8 +7,8 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Windows.Controls;
 using System.Runtime.CompilerServices;
-using VMS.TPS.Common.Model.API;
-using VMS.TPS.Common.Model.Types;
+using VMS.TPS.Common.Model.API; // Version 18.1
+using VMS.TPS.Common.Model.Types; // Version 18.1 f
 using Image = VMS.TPS.Common.Model.API.Image;
 using System.Windows.Media.Media3D;
 
