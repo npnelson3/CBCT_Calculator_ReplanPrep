@@ -53,7 +53,7 @@ namespace VMS.TPS
         private IEnumerable<Study> _studies;
         private ExternalPlanSetup _planExternalSetup;
         private List<KeyValuePair<string, MetersetValue>> presetValues;
-        private Structure CBCTstructure;
+        private Structure CBCTstructure; //heloow 
         //public static SearchBodyParameters highDensityParameters;
         //private Structure HighDensity;
 
