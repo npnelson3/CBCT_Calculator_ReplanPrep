@@ -635,6 +635,7 @@ namespace VMS.TPS
             // generate selected contours
             var selectedTargets = _targetStructureItems
             .Where(x => x.IsSelected).Select(x => x.Id).ToList();
+
             //copy them over
             CopyStructuresToCBCTImage(_simImage, newCBCT_structureSet, _newCBCT_image, sim_structureSet, IsoShift, selectedTargets);
 
