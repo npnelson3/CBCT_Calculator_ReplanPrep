@@ -115,7 +115,7 @@ namespace VMS.TPS
 
                 // create a drop down list of structures with anything with CTV GTV PTV selected
                 _targetStructureItems = _structureSet.Structures
-                    .Where(s => !s.IsEmpty)
+                    .Where(s => !s.IsEmpty && s.DicomType != "EXTERNAL") // intentionally not showing the body on the list to avoid confusion
                     .OrderBy(s => s.Id)
                     .Select(s => new StructureItem
                     {
@@ -712,6 +712,7 @@ namespace VMS.TPS
             }
         }
 
+        // original slice-by-slice version
         private void CopyStructuresToCBCTImage(
             Image _simImage,
             StructureSet newCBCT_structureSet,
@@ -812,22 +813,11 @@ namespace VMS.TPS
 
                                 foreach (var contour in contourOnImagePlane)
                                 {
-                                    VVector[] newContour = contour;
-                                    int k = 0;
-
-                                    foreach (var point in contour)
+                                    VVector[] newContour = new VVector[contour.Length];
+                                    for (int k=0;k<contour.Length; k++)
                                     {
-                                        var coordx = point.x;
-                                        var coordy = point.y;
-                                        var coordz = point.z;
-
-                                        newContour[k] =
-                                            new VVector(
-                                                coordx + IsoShift.x,
-                                                coordy + IsoShift.y,
-                                                coordz - IsoShift.z);
-
-                                        k++;
+                                        var pt = contour[k];
+                                        newContour[k] = new VVector(pt.x + IsoShift.x, pt.y + IsoShift.y, pt.z + IsoShift.z);
                                     }
 
                                     CBCTstructure.AddContourOnImagePlane(newContour, z);
