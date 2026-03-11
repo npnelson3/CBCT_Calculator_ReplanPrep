@@ -10,7 +10,7 @@ using System.Runtime.CompilerServices;
 using VMS.TPS.Common.Model.API; // Version 18.1
 using VMS.TPS.Common.Model.Types; // Version 18.1 f
 using Image = VMS.TPS.Common.Model.API.Image;
-using System.Windows.Media.Media3D;
+using System.Windows.Media.Media3D; // test
 
 // TODO: Replace the following version attributes by creating AssemblyInfo.cs. You can do this in the properties of the Visual Studio project.
 [assembly: AssemblyVersion("1.0.*")]
@@ -475,22 +475,6 @@ namespace VMS.TPS
                 StringBuilder myString = new StringBuilder(string.Format("Cannot set target structure to {0}!", TargetOnCBCT.Id));
                 CBCT_plan.SetTargetStructureIfNoDose(TargetOnCBCT, myString);
             }
-
-            // new plan method for Halcyon plans -- DIDNT WORK 10-15-2024
-            //Structure TargetOnCBCT = CBCT_structureSet.Structures.FirstOrDefault(x => x.Id == _plan.TargetVolumeID);
-            //var CBCT_plan = _course.AddExternalPlanSetup(newCBCT_structureSet, TargetOnCBCT, _plan.PrimaryReferencePoint);
-
-            //CopyBeamParameters(_patient, _plan, _cbctRegistration, _cbctForCalculation, _simImage, CBCT_plan);
-
-            //CBCT_plan.SetPrescription((int)_planExternalSetup.NumberOfFractions, _planExternalSetup.DosePerFraction, _planExternalSetup.TreatmentPercentage);
-            //if (TargetOnCBCT != null)
-            //{
-            //    StringBuilder myString = new StringBuilder(string.Format("Cannot set target structure to {0}!", TargetOnCBCT.Id));
-            //    CBCT_plan.SetTargetStructureIfNoDose(TargetOnCBCT, myString);
-            //}
-
-
-
 
             MessageBox.Show(string.Format("Set the following prescription\n\n" +
                 "Dose/fx: {0}\n" +
