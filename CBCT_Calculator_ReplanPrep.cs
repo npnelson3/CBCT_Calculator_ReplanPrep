@@ -1,16 +1,17 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Windows;
-using System.Windows.Input;
-using System.Collections.Generic;
-using System.Reflection;
 using System.Windows.Controls;
-using System.Runtime.CompilerServices;
+using System.Windows.Documents;
+using System.Windows.Input;
+using System.Windows.Media.Media3D;
 using VMS.TPS.Common.Model.API; // Version 18.1
 using VMS.TPS.Common.Model.Types; // Version 18.1 f
 using Image = VMS.TPS.Common.Model.API.Image;
-using System.Windows.Media.Media3D;
 
 // TODO: Replace the following version attributes by creating AssemblyInfo.cs. You can do this in the properties of the Visual Studio project.
 [assembly: AssemblyVersion("1.0.*")]
@@ -540,6 +541,9 @@ namespace VMS.TPS
             // populate presetValues variable
             CopyBeamParameters(_patient, _plan, _cbctRegistration, _cbctForCalculation, _simImage, CBCT_plan);
 
+            // copy optimization objectives for selected contours
+            //CopyOptimizationObjectives(_plan, selectedTargets);
+
             // calculate using presetValues
             CBCT_plan.SetPrescription((int)_planExternalSetup.NumberOfFractions, _planExternalSetup.DosePerFraction, _planExternalSetup.TreatmentPercentage);
             Structure TargetOnCBCT = CBCT_structureSet.Structures.FirstOrDefault(x => x.Id == _plan.TargetVolumeID);
@@ -712,7 +716,13 @@ namespace VMS.TPS
             }
         }
 
-        // original slice-by-slice version
+        private void CopyOptimizationObjectives(
+            PlanSetup _plan,
+            List<string> selectedTargets)
+        {
+
+        }
+
         private void CopyStructuresToCBCTImage(
             Image _simImage,
             StructureSet newCBCT_structureSet,
@@ -745,8 +755,12 @@ namespace VMS.TPS
                     continue;
                 }
 
+                // set CTV/GTV/PTV targets to have zz in front of ID and call it newID
+                string newId = GetCBCTStructureId(structure, selectedStructureIds);
+
+                // check if it already exists
                 bool existsInCBCTStructureAlready =
-                    newCBCT_structureSet.Structures.Any(x => x.Id == structure.Id);
+                    newCBCT_structureSet.Structures.Any(x => x.Id == newId);
 
                 int creationCounter = 0;
 
@@ -796,15 +810,15 @@ namespace VMS.TPS
                                 {
                                     if (string.IsNullOrEmpty(structure.DicomType))
                                     {
-                                        string DicomType = "ORGAN";
+                                        string DicomType = "ORGAN"; // set it to an organ
                                         CBCTstructure =
-                                            newCBCT_structureSet.AddStructure(DicomType, structure.Id);
+                                            newCBCT_structureSet.AddStructure(DicomType, newId);
                                         creationCounter = 1;
                                     }
                                     else
                                     {
                                         CBCTstructure =
-                                            newCBCT_structureSet.AddStructure(structure.DicomType, structure.Id);
+                                            newCBCT_structureSet.AddStructure(structure.DicomType, newId);
                                         creationCounter = 1;
                                     }
                                 }
@@ -891,6 +905,30 @@ namespace VMS.TPS
 
 
             //newCBCT_structureSet.RemoveStructure(BodyTemp); // remove BodyTemp from SS
+        }
+        /// <summary>
+        /// Renames structures to add zz before targets (CTV/GTV/PTV)
+        /// </summary>
+        /// <param name="structure"></param>
+        /// <param name="selectedStructureIds"></param>
+        /// <returns></returns>
+        private string GetCBCTStructureId(Structure structure, List<string> selectedStructureIds)
+        {
+            string id = structure.Id;
+
+            bool isTarget =
+                id.IndexOf("PTV", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                id.IndexOf("CTV", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                id.IndexOf("GTV", StringComparison.OrdinalIgnoreCase) >= 0;
+
+            if (selectedStructureIds.Contains(id) &&
+                isTarget &&
+                !id.StartsWith("zz", StringComparison.OrdinalIgnoreCase))
+            {
+                return "zz" + id;
+            }
+
+            return id;
         }
 
         /// <summary>
