@@ -542,7 +542,7 @@ namespace VMS.TPS
             CopyBeamParameters(_patient, _plan, _cbctRegistration, _cbctForCalculation, _simImage, CBCT_plan);
 
             // copy optimization objectives for selected contours
-            //CopyOptimizationObjectives(_plan, selectedTargets);
+            //CopyOptimizationObjectives(_plan, selectedTargets); //
 
             // calculate using presetValues
             CBCT_plan.SetPrescription((int)_planExternalSetup.NumberOfFractions, _planExternalSetup.DosePerFraction, _planExternalSetup.TreatmentPercentage);
