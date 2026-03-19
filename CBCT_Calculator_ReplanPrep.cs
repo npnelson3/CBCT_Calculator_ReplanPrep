@@ -1,12 +1,13 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Windows;
-using System.Windows.Input;
-using System.Collections.Generic;
-using System.Reflection;
 using System.Windows.Controls;
-using System.Runtime.CompilerServices;
+using System.Windows.Documents;
+using System.Windows.Input;
 using VMS.TPS.Common.Model.API; // Version 18.1
 using VMS.TPS.Common.Model.Types; // Version 18.1 f
 using Image = VMS.TPS.Common.Model.API.Image;
@@ -22,6 +23,12 @@ using System.Windows.Media.Media3D; // this is my edit
 
 namespace VMS.TPS
 {
+    public class StructureItem
+    {
+        public string Id { get; set; }
+        public bool IsSelected { get; set; }
+    }
+
     public class Script
     {
         public Script()
@@ -46,6 +53,7 @@ namespace VMS.TPS
         private Course _course;
         private PlanSetup _plan;
         private PlanSetup _planSetup;
+        private StructureSet _structureSet;
         private IEnumerable<Beam> _OriginalBeams;
         private Registration _cbctRegistration;
         private IOrderedEnumerable<VMS.TPS.Common.Model.API.Image> _SortedImageList;
@@ -54,6 +62,8 @@ namespace VMS.TPS
         private ExternalPlanSetup _planExternalSetup;
         private List<KeyValuePair<string, MetersetValue>> presetValues;
         private Structure CBCTstructure;
+        private ListBox _targetStructuresListBox;
+        private List<StructureItem> _targetStructureItems;
         //public static SearchBodyParameters highDensityParameters;
         //private Structure HighDensity;
 
@@ -74,6 +84,7 @@ namespace VMS.TPS
                 _planExternalSetup = context.ExternalPlanSetup;
                 _OriginalBeams = GetBeams(context);
                 _simImage = GetSimImage(context);
+                _structureSet = GetStructureSet(context);
 
                 //MessageBox.Show("Loaded patient, course, studies, and plan.");
 
@@ -102,6 +113,20 @@ namespace VMS.TPS
                 {
                     _SortedImageListWithDates.Add(string.Format("{0} ({1} slices, {2})", image.Id, image.ZSize, image.CreationDateTime.ToString()));
                 }
+
+                // create a drop down list of structures with anything with CTV GTV PTV selected
+                _targetStructureItems = _structureSet.Structures
+                    .Where(s => !s.IsEmpty && s.DicomType != "EXTERNAL") // intentionally not showing the body on the list to avoid confusion
+                    .OrderBy(s => s.Id)
+                    .Select(s => new StructureItem
+                    {
+                        Id = s.Id,
+                        IsSelected =
+                            s.Id.StartsWith("PTV", StringComparison.OrdinalIgnoreCase) ||
+                            s.Id.StartsWith("CTV", StringComparison.OrdinalIgnoreCase) ||
+                            s.Id.StartsWith("GTV", StringComparison.OrdinalIgnoreCase)
+                    })
+                    .ToList();
 
                 // if a patient has a replan within the same course, the replan CBCT's will start as kVCBCT_01a01 just like the original plan
                 // for example if a patient had a replan for the last 5 fractions, there would be 5 duplicates
@@ -134,6 +159,26 @@ namespace VMS.TPS
                     // set the selected item as the plan target volume id OR the frist target in the list
                     //SelectedItem = string.IsNullOrEmpty(_plan.TargetVolumeID) ? _ptvIds.First() : _plan.TargetVolumeID,
                     Width = 300
+                };
+
+                // List of structures with check box
+                _targetStructuresListBox = new ListBox
+                {
+                    Width = 300,
+                    Height = 150,
+                    ItemsSource = _targetStructureItems
+                };
+                FrameworkElementFactory factory = new FrameworkElementFactory(typeof(CheckBox));
+
+                factory.SetBinding(CheckBox.ContentProperty,
+                    new System.Windows.Data.Binding("Id"));
+
+                factory.SetBinding(CheckBox.IsCheckedProperty,
+                    new System.Windows.Data.Binding("IsSelected"));
+
+                _targetStructuresListBox.ItemTemplate = new DataTemplate
+                {
+                    VisualTree = factory
                 };
 
                 // main container
@@ -237,6 +282,22 @@ namespace VMS.TPS
                 });
                 spDuplicates.Children.Add(_duplicatesComboBox);
 
+                StackPanel spTargets = new StackPanel()
+                {
+                    Orientation = Orientation.Horizontal,
+                    Margin = new Thickness(0, 10, 0, 0)
+                };
+
+                spTargets.Children.Add(new TextBlock
+                {
+                    Text = "Target Structures",
+                    FontWeight = FontWeights.Bold,
+                    Width = 125,
+                    Margin = new Thickness(0, 0, 10, 0)
+                });
+
+                spTargets.Children.Add(_targetStructuresListBox);
+
                 // button to calculate CBCT dose
                 _calculateCBCTDoseButton = new Button
                 {
@@ -281,6 +342,7 @@ namespace VMS.TPS
                 spMain.Children.Add(_patientInfoBlock);
                 spMain.Children.Add(spCBCTs);
                 spMain.Children.Add(spDuplicates);
+                spMain.Children.Add(spTargets);
                 spMain.Children.Add(_calculateCBCTDoseButton);
                 spMain.Children.Add(_replanCBCTButton);
                 spMain.Children.Add(_CBCTnotesBlock);
@@ -309,6 +371,15 @@ namespace VMS.TPS
 
         //HELPER FUNCTIONS
 
+        /// <summary>
+        /// Gets the patient in the current context
+        /// </summary>
+        /// <param name="context"></param>
+        /// <returns></returns>
+        private static Patient GetPatient(ScriptContext context)
+        {
+            return context.Patient;
+        }
         /// <summary>
         /// Gets the image of the current plan (which should be the CT sim)
         /// </summary>
@@ -453,7 +524,10 @@ namespace VMS.TPS
             // get the isocenter shifts
             VVector IsoShift = GetIsocenterShifts(_cbctRegistration, _plan.Beams.First().IsocenterPosition);
 
-            CopyStructuresToCBCTImage(_simImage, newCBCT_structureSet, _newCBCT_image, sim_structureSet, IsoShift);
+            var selectedTargets = _targetStructureItems
+                .Where(x => x.IsSelected).Select(x => x.Id).ToList();
+
+            CopyStructuresToCBCTImage(_simImage, newCBCT_structureSet, _newCBCT_image, sim_structureSet, IsoShift, selectedTargets);
 
             //// WORKING 10-15-2024 (verification plan-based)
             // add new plan
@@ -467,6 +541,9 @@ namespace VMS.TPS
             // populate presetValues variable
             CopyBeamParameters(_patient, _plan, _cbctRegistration, _cbctForCalculation, _simImage, CBCT_plan);
 
+            // copy optimization objectives for selected contours
+            //CopyOptimizationObjectives(_plan, selectedTargets); //
+
             // calculate using presetValues
             CBCT_plan.SetPrescription((int)_planExternalSetup.NumberOfFractions, _planExternalSetup.DosePerFraction, _planExternalSetup.TreatmentPercentage);
             Structure TargetOnCBCT = CBCT_structureSet.Structures.FirstOrDefault(x => x.Id == _plan.TargetVolumeID);
@@ -475,22 +552,6 @@ namespace VMS.TPS
                 StringBuilder myString = new StringBuilder(string.Format("Cannot set target structure to {0}!", TargetOnCBCT.Id));
                 CBCT_plan.SetTargetStructureIfNoDose(TargetOnCBCT, myString);
             }
-
-            // new plan method for Halcyon plans -- DIDNT WORK 10-15-2024
-            //Structure TargetOnCBCT = CBCT_structureSet.Structures.FirstOrDefault(x => x.Id == _plan.TargetVolumeID);
-            //var CBCT_plan = _course.AddExternalPlanSetup(newCBCT_structureSet, TargetOnCBCT, _plan.PrimaryReferencePoint);
-
-            //CopyBeamParameters(_patient, _plan, _cbctRegistration, _cbctForCalculation, _simImage, CBCT_plan);
-
-            //CBCT_plan.SetPrescription((int)_planExternalSetup.NumberOfFractions, _planExternalSetup.DosePerFraction, _planExternalSetup.TreatmentPercentage);
-            //if (TargetOnCBCT != null)
-            //{
-            //    StringBuilder myString = new StringBuilder(string.Format("Cannot set target structure to {0}!", TargetOnCBCT.Id));
-            //    CBCT_plan.SetTargetStructureIfNoDose(TargetOnCBCT, myString);
-            //}
-
-
-
 
             MessageBox.Show(string.Format("Set the following prescription\n\n" +
                 "Dose/fx: {0}\n" +
@@ -575,7 +636,12 @@ namespace VMS.TPS
             // get the isocenter shifts
             VVector IsoShift = GetIsocenterShifts(_cbctRegistration, _plan.Beams.First().IsocenterPosition);
 
-            CopyStructuresToCBCTImage(_simImage, newCBCT_structureSet, _newCBCT_image, sim_structureSet, IsoShift);
+            // generate selected contours
+            var selectedTargets = _targetStructureItems
+            .Where(x => x.IsSelected).Select(x => x.Id).ToList();
+
+            //copy them over
+            CopyStructuresToCBCTImage(_simImage, newCBCT_structureSet, _newCBCT_image, sim_structureSet, IsoShift, selectedTargets);
 
             // add new plan
             var CBCT_plan = _course.AddExternalPlanSetupAsVerificationPlan(newCBCT_structureSet, _planExternalSetup);
@@ -650,86 +716,126 @@ namespace VMS.TPS
             }
         }
 
-        private void CopyStructuresToCBCTImage(Image _simImage, StructureSet newCBCT_structureSet, Image _newCBCT_image, StructureSet sim_structureSet, VVector IsoShift)
+        private void CopyOptimizationObjectives(
+            PlanSetup _plan,
+            List<string> selectedTargets)
         {
-            int z_offset_start = (int)Math.Round((_newCBCT_image.Origin.z - _simImage.Origin.z) / (_newCBCT_image.ZRes)); // number of indices to add to CT slice get to CBCT slice
+
+        }
+
+        private void CopyStructuresToCBCTImage(
+            Image _simImage,
+            StructureSet newCBCT_structureSet,
+            Image _newCBCT_image,
+            StructureSet sim_structureSet,
+            VVector IsoShift,
+            List<string> selectedStructureIds)
+        {
+            int z_offset_start = (int)Math.Round((_newCBCT_image.Origin.z - _simImage.Origin.z) / (_newCBCT_image.ZRes));
             double z_cbct_end = _newCBCT_image.Origin.z + _newCBCT_image.ZRes * (_newCBCT_image.ZSize - 1);
             double z_ct_end = _simImage.Origin.z + _simImage.ZRes * (_simImage.ZSize - 1);
             int z_offset_end = (int)Math.Round((z_ct_end - z_cbct_end) / _newCBCT_image.ZRes);
-            int z_index_offset = z_offset_start - (int)Math.Round(IsoShift.z / _newCBCT_image.ZRes); // this works!!
+            int z_index_offset = z_offset_start - (int)Math.Round(IsoShift.z / _newCBCT_image.ZRes);
 
             bool couchwarn = false;
 
+            // Always include EXTERNAL so dose calculation works
+            var external = sim_structureSet.Structures.FirstOrDefault(x => x.DicomType == "EXTERNAL");
+            if (external != null && !selectedStructureIds.Contains(external.Id))
+            {
+                selectedStructureIds.Add(external.Id);
+            }
+
             foreach (var structure in sim_structureSet.Structures)
             {
-                bool existsInCBCTStructureAlready = newCBCT_structureSet.Structures.Any(x => x.Id == structure.Id); // check if it already exists
-                int creationCounter = 0; // this is set to 0 if the CBCT structure has yet to be made. If it gets made, it is set to 1.
-                if (!existsInCBCTStructureAlready) // if it doesnt already exist, lets copy it
+                // Skip structures not selected
+                if (!selectedStructureIds.Contains(structure.Id) &&
+                    structure.DicomType != "SUPPORT")
                 {
-                    if (structure.DicomType == "BOLUS") // skip bolus for now
+                    continue;
+                }
+
+                // set CTV/GTV/PTV targets to have zz in front of ID and call it newID
+                string newId = GetCBCTStructureId(structure, selectedStructureIds);
+
+                // check if it already exists
+                bool existsInCBCTStructureAlready =
+                    newCBCT_structureSet.Structures.Any(x => x.Id == newId);
+
+                int creationCounter = 0;
+
+                if (!existsInCBCTStructureAlready)
+                {
+                    if (structure.DicomType == "BOLUS")
                     {
                         MessageBox.Show("It looks like there is a bolus in this plan, I cannot copy those over in Eclipse 16.1, should be available in Eclipse 18.");
                     }
                     else if (structure.DicomType == "EXTERNAL")
                     {
-                        //skip copying over previous external
+                        // skip copying over previous external
                     }
                     else if (structure.DicomType == "SUPPORT")
                     {
                         if (!couchwarn)
                         {
                             MessageBox.Show("I have found a couch in the structure set, will not copy over but instead insert the Halcyon couch.");
-                            couchwarn = true; // set it to true so we don't give user this message again
-                                              // try inserting couch structure'
+                            couchwarn = true;
+
                             bool imageResized = false;
                             string errorCouch = null;
 
-                            newCBCT_structureSet.AddCouchStructures("RDS_Couch_Top", PatientOrientation.NoOrientation, RailPosition.In, RailPosition.Out, null, null, null, out IReadOnlyList<Structure> couchStructureList, out imageResized, out errorCouch);
+                            newCBCT_structureSet.AddCouchStructures(
+                                "RDS_Couch_Top",
+                                PatientOrientation.NoOrientation,
+                                RailPosition.In,
+                                RailPosition.Out,
+                                null,
+                                null,
+                                null,
+                                out IReadOnlyList<Structure> couchStructureList,
+                                out imageResized,
+                                out errorCouch);
                         }
                     }
                     else
                     {
-                        for (var z = 0; z < _newCBCT_image.ZSize; z++) // loop over image and copy over structure slice by slice
+                        for (var z = 0; z < _newCBCT_image.ZSize; z++)
                         {
-                            var contourOnImagePlane = structure.GetContoursOnImagePlane(z + z_index_offset); // this z index needs to be modified
+                            var contourOnImagePlane =
+                                structure.GetContoursOnImagePlane(z + z_index_offset);
+
                             if (contourOnImagePlane != null && contourOnImagePlane.Length > 0)
                             {
                                 if (creationCounter == 0)
                                 {
-                                    //Structure CBCTstructure;
-                                    // if the contour can exist on CBCT plane, create it
-                                    if (string.IsNullOrEmpty(structure.DicomType)) // if dicom type isnt set, lets set it to organ
+                                    if (string.IsNullOrEmpty(structure.DicomType))
                                     {
-                                        string DicomType = "ORGAN";
-                                        CBCTstructure = newCBCT_structureSet.AddStructure(DicomType, structure.Id);
+                                        string DicomType = "ORGAN"; // set it to an organ
+                                        CBCTstructure =
+                                            newCBCT_structureSet.AddStructure(DicomType, newId);
                                         creationCounter = 1;
                                     }
-                                    else // copy dicom type
+                                    else
                                     {
-                                        CBCTstructure = newCBCT_structureSet.AddStructure(structure.DicomType, structure.Id);
+                                        CBCTstructure =
+                                            newCBCT_structureSet.AddStructure(structure.DicomType, newId);
                                         creationCounter = 1;
                                     }
-                                }
-                                // set the color to what it was
-                                CBCTstructure.Color = structure.Color;
-                                double z_dist_cbct = _newCBCT_image.Origin.z + _newCBCT_image.ZRes * (z);
-                                double z_dist_CT = _simImage.Origin.z + _simImage.ZRes * (z + z_index_offset);
-                                foreach (var contour in contourOnImagePlane)
-                                {
-                                    VVector[] newContour = contour;
-                                    int k = 0;
-                                    foreach (var point in contour)
-                                    {
-                                        var coordx = point.x;
-                                        var coordy = point.y;
-                                        var coordz = point.z;
-                                        newContour[k] = new VVector(coordx + IsoShift.x, coordy + IsoShift.y, coordz - IsoShift.z); // z part does not impact placement in slice direction
-                                        k = k + 1;
-                                    }
-                                    CBCTstructure.AddContourOnImagePlane(newContour, z);
-                                    k = 0;
                                 }
 
+                                CBCTstructure.Color = structure.Color;
+
+                                foreach (var contour in contourOnImagePlane)
+                                {
+                                    VVector[] newContour = new VVector[contour.Length];
+                                    for (int k=0;k<contour.Length; k++)
+                                    {
+                                        var pt = contour[k];
+                                        newContour[k] = new VVector(pt.x + IsoShift.x, pt.y + IsoShift.y, pt.z + IsoShift.z);
+                                    }
+
+                                    CBCTstructure.AddContourOnImagePlane(newContour, z);
+                                }
                             }
                         }
                     }
@@ -800,6 +906,30 @@ namespace VMS.TPS
 
             //newCBCT_structureSet.RemoveStructure(BodyTemp); // remove BodyTemp from SS
         }
+        /// <summary>
+        /// Renames structures to add zz before targets (CTV/GTV/PTV)
+        /// </summary>
+        /// <param name="structure"></param>
+        /// <param name="selectedStructureIds"></param>
+        /// <returns></returns>
+        private string GetCBCTStructureId(Structure structure, List<string> selectedStructureIds)
+        {
+            string id = structure.Id;
+
+            bool isTarget =
+                id.IndexOf("PTV", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                id.IndexOf("CTV", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                id.IndexOf("GTV", StringComparison.OrdinalIgnoreCase) >= 0;
+
+            if (selectedStructureIds.Contains(id) &&
+                isTarget &&
+                !id.StartsWith("zz", StringComparison.OrdinalIgnoreCase))
+            {
+                return "zz" + id;
+            }
+
+            return id;
+        }
 
         /// <summary>
         /// Relates the z-index from the CBCT to the z-index of the CTsim image and structure set.
@@ -847,16 +977,6 @@ namespace VMS.TPS
                 MessageBox.Show(alertmessage);
                 return;
             }
-        }
-
-        /// <summary>
-        /// Gets the patient in the current context
-        /// </summary>
-        /// <param name="context"></param>
-        /// <returns></returns>
-        private static Patient GetPatient(ScriptContext context)
-        {
-            return context.Patient;
         }
 
         /// <summary>
