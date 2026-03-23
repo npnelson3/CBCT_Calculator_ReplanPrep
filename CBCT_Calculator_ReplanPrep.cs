@@ -9,7 +9,7 @@ using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Input;
 using VMS.TPS.Common.Model.API; // Version 18.1
-using VMS.TPS.Common.Model.Types; // Version 18.1 f
+using VMS.TPS.Common.Model.Types; // Version 18.1
 using Image = VMS.TPS.Common.Model.API.Image;
 using System.Windows.Media.Media3D; // this is my edit
 
@@ -343,7 +343,7 @@ namespace VMS.TPS
                 spMain.Children.Add(spCBCTs);
                 spMain.Children.Add(spDuplicates);
                 spMain.Children.Add(spTargets);
-                spMain.Children.Add(_calculateCBCTDoseButton);
+                //spMain.Children.Add(_calculateCBCTDoseButton); temporarily remove this button
                 spMain.Children.Add(_replanCBCTButton);
                 spMain.Children.Add(_CBCTnotesBlock);
                 spMain.Children.Add(_notesBlock);
@@ -529,9 +529,24 @@ namespace VMS.TPS
 
             CopyStructuresToCBCTImage(_simImage, newCBCT_structureSet, _newCBCT_image, sim_structureSet, IsoShift, selectedTargets);
 
-            //// WORKING 10-15-2024 (verification plan-based)
+            // create new course for CBCT plan
+            Course sourceCourse = _course;
+            string newCourseId = sourceCourse.Id + "_OfflineEval";
+            if (newCourseId.Length > 16)
+            {
+                newCourseId = newCourseId.Substring(0, 16);
+            }
+            // Check if it already exists
+            Course offlineCourse = _patient.Courses
+                .FirstOrDefault(c => c.Id == newCourseId);
+            // If not, lets make it
+            if (offlineCourse == null)
+            {
+                offlineCourse = _patient.AddCourse();
+                offlineCourse.Id = newCourseId;
+            }
             // add new plan
-            var CBCT_plan = _course.AddExternalPlanSetupAsVerificationPlan(newCBCT_structureSet, _planExternalSetup);
+            var CBCT_plan = offlineCourse.AddExternalPlanSetupAsVerificationPlan(newCBCT_structureSet, _planExternalSetup);
             CBCT_plan.Id = string.Format("kVCBCT_fx{0}", fxNo);
             //MessageBox.Show("Added ExternalPlanSetup for CBCT plan!");
 
@@ -878,33 +893,8 @@ namespace VMS.TPS
             {
                 SearchBodyParameters defaultSearchParameters = newCBCT_structureSet.GetDefaultSearchBodyParameters();
                 body = newCBCT_structureSet.CreateAndSearchBody(defaultSearchParameters);
-                MessageBox.Show(string.Format("Searching for body using default parameters, LowerHUThreshold = {0}.", defaultSearchParameters.LowerHUThreshold));
+                //MessageBox.Show(string.Format("Searching for body using default parameters, LowerHUThreshold = {0}.", defaultSearchParameters.LowerHUThreshold));
             }
-
-            //Structure BodyTemp = body; // store body structure in temporary structure BodyTemp
-
-            //SearchBodyParameters highDensityParameters = newCBCT_structureSet.GetDefaultSearchBodyParameters();
-            //highDensityParameters.LowerHUThreshold = 3069;
-            //MessageBox.Show(string.Format("Searching for high density using body function where LowerHUThreshold = {0}.", highDensityParameters.LowerHUThreshold));
-
-            //body = newCBCT_structureSet.CreateAndSearchBody(highDensityParameters);
-            ////body = newCBCT_structureSet.CreateAndSearchBody(_highDensityParameters);
-            //if (body.Volume > 0) // if there is high density
-            //{
-            //    Structure HighDensity = newCBCT_structureSet.AddStructure("CONTROL", "CBCT_HD");
-            //    HighDensity.SegmentVolume = body.SegmentVolume; // set to HD segment volume, under disguise as body
-            //    body.SegmentVolume = BodyTemp.SegmentVolume; // set body back to old segment volume
-            //    HighDensity.SetAssignedHU(3069);
-            //    MessageBox.Show("This image has high density materials in it, I have contoured it and set it to 3069 to allow for dose calculation. " +
-            //        "Please assess accuracy of override and make changes and recalculate if needed.");
-            //}
-            //else
-            //{
-            //    body.SegmentVolume = BodyTemp.SegmentVolume; // set body back to old segment volume
-            //}
-
-
-            //newCBCT_structureSet.RemoveStructure(BodyTemp); // remove BodyTemp from SS
         }
         /// <summary>
         /// Renames structures to add zz before targets (CTV/GTV/PTV)

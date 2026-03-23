@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.31702.278
+# Visual Studio Version 18
+VisualStudioVersion = 18.2.11415.280 d18.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CBCT_Calculator_ReplanPrep", "CBCT_Calculator_ReplanPrep.csproj", "{DABB6A49-A398-4CF3-B7CD-1CE84E1E8B6F}"
 EndProject
